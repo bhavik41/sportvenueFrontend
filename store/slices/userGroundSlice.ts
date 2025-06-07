@@ -2,6 +2,8 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { Ground } from "@/types/ground";
 import { RootState } from "@/store/store";
 import axios from "axios";
+import Cookies from "js-cookie";
+
 interface UserGroundState {
   grounds: Ground[];
   currentGround: Ground | null;
@@ -32,15 +34,46 @@ const initialState: UserGroundState = {
   limit: 10,
 };
 
+// export const fetchGrounds = createAsyncThunk(
+//   "grounds/fetchGrounds",
+//   async (page: number, { getState }) => {
+//     console.log("Fetching ground:", page);
+//     const skip = (page - 1) * initialState.limit;
+//     const response = await axios.get(
+//       `http://localhost:3000/user/grounds?skip=${skip}&limit=${initialState.limit}`
+//     );
+//     return response.data; // Assumes API returns a list of products
+//   }
+// );
+
+interface FetchGroundsParams {
+  page: number;
+  searchTerm?: string;
+  groundType?: string;
+  priceRange?: string;
+}
+
 export const fetchGrounds = createAsyncThunk(
   "grounds/fetchGrounds",
-  async (page: number, { getState }) => {
-    console.log("Fetching ground:", page);
-    const skip = (page - 1) * initialState.limit;
-    const response = await axios.get(
-      `http://localhost:3000/user/grounds?skip=${skip}&limit=${initialState.limit}`
-    );
-    return response.data; // Assumes API returns a list of products
+  async ({ page, searchTerm, groundType, priceRange }: FetchGroundsParams) => {
+    const skip = (page - 1) * initialState.limit; // Assuming 9 items per page
+
+    const token = Cookies.get("token");
+    console.log(token);
+    const response = await axios.get(`http://localhost:3000/user/grounds`, {
+      params: {
+        skip,
+        limit: initialState.limit,
+        searchTerm,
+        groundType,
+        priceRange,
+      },
+      headers: {
+        Authorization: token ? `Bearer ${token}` : "",
+      },
+    });
+    console.log(response.data.grounds);
+    return response.data;
   }
 );
 
@@ -89,7 +122,8 @@ const userGroundSlice = createSlice({
       .addCase(fetchGrounds.fulfilled, (state, action) => {
         state.isLoading = false;
         state.error = null;
-        state.grounds = action.payload;
+        state.grounds = action.payload.grounds;
+        state.totalGrounds = action.payload.totalGrounds;
       })
 
       .addCase(fetchGrounds.rejected, (state, action) => {

@@ -33,7 +33,7 @@ export const fetchGrounds = createAsyncThunk(
   async (adminId?: string) => {
     const token = Cookies.get("token");
     const url = adminId
-      ? `http://localhost:3000/grounds?adminId=${adminId}`
+      ? `http://localhost:3000/admin/grounds/${adminId}`
       : "http://localhost:3000/grounds";
     const response = await axios.get(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},

@@ -4,7 +4,7 @@ import AllGround from "@/components/user/AllGround";
 
 export default function DashboardPage() {
   return (
-    <ProtectedRoute allowedRoles={["user", "admin"]}>
+    <ProtectedRoute allowedRoles={["user"]}>
       <AllGround />
     </ProtectedRoute>
   );

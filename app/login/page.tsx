@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { AppDispatch, RootState } from "@/store/store";
-import { loginUser, clearError } from "@/store/slices/authslice";
+import { loginUser, clearError, verifyToken } from "@/store/slices/authslice";
+import Cookies from "js-cookie";
 
 export default function LoginPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -15,6 +16,13 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+  });
+
+  useEffect(() => {
+    const token = Cookies.get("token");
+    if (token) {
+      dispatch(verifyToken());
+    }
   });
 
   useEffect(() => {

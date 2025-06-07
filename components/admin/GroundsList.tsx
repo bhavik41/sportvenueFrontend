@@ -9,7 +9,7 @@ import GroundForm from "./GroundForm";
 export default function GroundsList() {
   const dispatch = useDispatch<AppDispatch>();
   const { grounds, isLoading } = useSelector(
-    (state: RootState) => state.grounds
+    (state: RootState) => state.adminGrounds
   );
   const { user } = useSelector((state: RootState) => state.auth);
 

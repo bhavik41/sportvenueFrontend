@@ -13,6 +13,7 @@ export default function DashboardLayout({
   const dispatch = useDispatch();
   const router = useRouter();
   const { user } = useSelector((state: RootState) => state.auth);
+  console.log(user);
 
   const handleLogout = () => {
     dispatch(logout());

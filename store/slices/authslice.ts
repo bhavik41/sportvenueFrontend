@@ -36,7 +36,7 @@ export const loginUser = createAsyncThunk(
 
     // Store token in cookie
     Cookies.set("token", response.data.token, { expires: 7 });
-    console.log(response.data);
+    console.log(response.data.user);
     return response.data;
   }
 );
@@ -103,6 +103,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
+        console.log("state.user");
         state.token = action.payload.token;
       })
       .addCase(loginUser.rejected, (state, action) => {
@@ -127,8 +128,7 @@ const authSlice = createSlice({
       // Verify token cases
       .addCase(verifyToken.fulfilled, (state, action) => {
         state.isAuthenticated = true;
-        state.user = action.payload.user;
-        state.token = action.payload.token;
+        // state.user = action.payload.user;
       })
       .addCase(verifyToken.rejected, (state) => {
         state.user = null;
