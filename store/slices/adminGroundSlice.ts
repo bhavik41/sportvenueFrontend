@@ -48,7 +48,7 @@ export const createGround = createAsyncThunk(
     const token = Cookies.get("token");
     if (!token) return null;
     const response = await axios.post(
-      "http://localhost:3000/grounds",
+      "http://localhost:3000/admin/grounds",
       groundData,
       {
         headers: {

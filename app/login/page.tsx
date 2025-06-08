@@ -20,7 +20,8 @@ export default function LoginPage() {
 
   useEffect(() => {
     const token = Cookies.get("token");
-    if (token) {
+    console.log(token);
+    if (token && !isLoading) {
       dispatch(verifyToken());
     }
   });

@@ -22,13 +22,13 @@ export interface Ground {
     | "other";
   amenities: string[];
   images: string[];
-  slots: TimeSlot[];
+  slots?: TimeSlot[];
   basePrice: number;
-  offers: Offer[];
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  adminId: string;
+  offers?: Offer[];
+  isActive?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  adminId?: string;
 }
 
 export interface TimeSlot {

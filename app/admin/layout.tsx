@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { RootState } from "@/store/store";
 import { logout } from "@/store/slices/authslice";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import RoleGuard from "@/components/RoleGuard";
+// import RoleGuard from "@/components/RoleGuard";
 
 export default function AdminLayout({
   children,
@@ -81,8 +81,9 @@ export default function AdminLayout({
               </div>
             </div>
           </div>
+          {children}
 
-          <RoleGuard allowedRoles={["admin"]}>{children}</RoleGuard>
+          {/* <RoleGuard allowedRoles={["admin"]}>{children}</RoleGuard> */}
         </main>
       </div>
     </>

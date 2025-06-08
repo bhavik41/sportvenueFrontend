@@ -35,7 +35,6 @@ const AllGround = () => {
 
   const GroundCard = ({ ground }: { ground: Ground }) => (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] group">
-      <div>hello</div>
       <div className="relative">
         <img
           src={ground.images[0]}
@@ -68,7 +67,6 @@ const AllGround = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div>hello</div>
       <div className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">

@@ -70,10 +70,15 @@ export const registerUser = createAsyncThunk(
 export const verifyToken = createAsyncThunk("auth/verify", async () => {
   const token = Cookies.get("token");
   if (!token) throw new Error("No token found");
+  console.log("calling verify token");
 
   const response = await axios.get("http://localhost:3000/auth/profile", {
     headers: { Authorization: `Bearer ${token}` },
   });
+  console.log(response.data);
+
+  // Save token in cookie after successful verification
+  // Cookies.set("token", token, { expires: 7 });
 
   return { ...response.data, token };
 });
@@ -102,7 +107,7 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = true;
-        state.user = action.payload.user;
+        // state.user = action.payload.user;
         console.log("state.user");
         state.token = action.payload.token;
       })
@@ -118,7 +123,7 @@ const authSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = true;
-        state.user = action.payload.user;
+        // state.user = action.payload.user;
         state.token = action.payload.token;
       })
       .addCase(registerUser.rejected, (state, action) => {
@@ -128,7 +133,8 @@ const authSlice = createSlice({
       // Verify token cases
       .addCase(verifyToken.fulfilled, (state, action) => {
         state.isAuthenticated = true;
-        // state.user = action.payload.user;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
       })
       .addCase(verifyToken.rejected, (state) => {
         state.user = null;

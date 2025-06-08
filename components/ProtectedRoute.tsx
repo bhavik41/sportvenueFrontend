@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import { RootState, AppDispatch } from "@/store/store";
 import { verifyToken } from "@/store/slices/authslice";
+import Cookies from "js-cookie";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -29,7 +30,12 @@ export default function ProtectedRoute({
   }, [dispatch, isAuthenticated]);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    const token = Cookies.get("token");
+
+    if (!isLoading && !isAuthenticated && token) {
+      dispatch(verifyToken());
+    }
+    if (!isLoading && !isAuthenticated && !token) {
       router.push(redirectTo);
     }
   }, [isAuthenticated, isLoading, router, redirectTo]);
