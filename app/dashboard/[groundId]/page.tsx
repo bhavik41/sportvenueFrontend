@@ -1,14 +1,16 @@
-import { Ground } from "@/types/ground";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import GroundDetailes from "@/components/user/groundDetailes";
 
 export default async function ({
   params,
 }: {
-  params: Promise<{ GroundId: string }>;
+  params: Promise<{ groundId: string }>;
 }) {
-  const { GroundId } = await params;
+  const { groundId } = await params;
+
   return (
-    <div>
-      <h1>Ground {GroundId}</h1>
-    </div>
+    <ProtectedRoute allowedRoles={["user"]}>
+      <GroundDetailes groundId={groundId} />
+    </ProtectedRoute>
   );
 }

@@ -72,17 +72,21 @@ export const fetchGrounds = createAsyncThunk(
         Authorization: token ? `Bearer ${token}` : "",
       },
     });
-    console.log(response.data.grounds);
     return response.data;
   }
 );
 
 export const fetchGroundById = createAsyncThunk(
   "grounds/fetchGroundById",
-  async (id: string, { getState }) => {
-    console.log("Fetching ground by id:", id);
+  async (groundId: string, { getState }) => {
+    console.log("Fetching ground by id:", groundId);
     const response = await axios.get(
-      `http://localhost:3000/user/grounds/${id}`
+      `${process.env.NEXT_PUBLIC_API_URL}/user/grounds/${groundId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${Cookies.get("token")}`,
+        },
+      }
     );
     return response.data; // Assumes API returns a list of products
   }

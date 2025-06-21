@@ -13,18 +13,20 @@ export default function LoginPage() {
     (state: RootState) => state.auth
   );
 
+  const [token, setToken] = useState("");
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
   useEffect(() => {
-    const token = Cookies.get("token");
+    setToken(Cookies.get("token") || "");
     console.log(token);
     if (token && !isLoading) {
       dispatch(verifyToken());
     }
-  });
+  }, [token]);
 
   useEffect(() => {
     if (isAuthenticated && user) {

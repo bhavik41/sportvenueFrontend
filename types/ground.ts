@@ -58,4 +58,5 @@ export interface Offer {
   validTo: string;
   isActive: boolean;
   applicableSlots?: string[];
+  couponCode?: string;
 }

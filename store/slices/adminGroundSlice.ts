@@ -66,7 +66,7 @@ export const updateGround = createAsyncThunk(
   async ({ id, data }: { id: string; data: FormData }) => {
     const token = Cookies.get("token");
     const response = await axios.put(
-      `http://localhost:3000/grounds/${id}`,
+      `http://localhost:3000/admin/grounds/${id}`,
       data,
       {
         headers: {
@@ -82,7 +82,14 @@ export const updateGround = createAsyncThunk(
 export const deleteGround = createAsyncThunk(
   "grounds/deleteGround",
   async (id: string) => {
-    await axios.delete(`/api/grounds/${id}`);
+    await axios.delete(
+      `${process.env.NEXT_PUBLIC_API_URL}/admin/grounds/${id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${Cookies.get("token")}`,
+        },
+      }
+    );
     return id;
   }
 );

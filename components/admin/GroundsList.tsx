@@ -160,8 +160,8 @@ export default function GroundsList() {
               </p>
 
               <div className="text-sm text-gray-600 mb-3">
-                <div>Slots: {ground.slots.length}</div>
-                <div>Offers: {ground.offers.length}</div>
+                <div>Slots: {ground.slots?.length || 0}</div>
+                <div>Offers: {ground.offers?.length || 0}</div>
                 <div>Images: {ground.images.length}/5</div>
               </div>
 

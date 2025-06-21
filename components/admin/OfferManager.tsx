@@ -61,8 +61,6 @@ export default function OfferManager({
         description: offer.description,
         discountType: offer.discountType,
         discountValue: offer.discountValue,
-        // validFrom: offer.validFrom.toISOString().split("T")[0],
-        // validTo: offer.validTo.toISOString().split("T")[0],
         validFrom: new Date(offer.validFrom).toISOString().split("T")[0],
         validTo: new Date(offer.validTo).toISOString().split("T")[0],
         isActive: offer.isActive,
@@ -72,6 +70,7 @@ export default function OfferManager({
       setShowAddOffer(true);
     }
   };
+
   const handleUpdateOffer = () => {
     if (editingOffer) {
       const updatedOffers = offers.map((offer) =>
@@ -106,62 +105,6 @@ export default function OfferManager({
     }
   };
 
-  //   const handleUpdateOffer = () => {
-  //     if (editingOffer) {
-  //       setOffers(
-  //         offers.map((offer) =>
-  //           offer.id === editingOffer
-  //             ? {
-  //                 ...offer,
-  //                 title: newOffer.title,
-  //                 description: newOffer.description,
-  //                 discountType: newOffer.discountType,
-  //                 discountValue: newOffer.discountValue,
-  //                 validFrom: new Date(newOffer.validFrom),
-  //                 validTo: new Date(newOffer.validTo),
-  //                 isActive: newOffer.isActive,
-  //                 applicableSlots:
-  //                   newOffer.applicableSlots.length > 0
-  //                     ? newOffer.applicableSlots
-  //                     : undefined,
-  //               }
-  //             : offer
-  //         )
-  //       );
-  //       resetForm();
-  //     }
-  //   };
-  // const handleUpdateOffer = () => {
-  //   if (editingOffer) {
-  //     setOffers(
-  //       offers.map((offer) =>
-  //         offer.id === editingOffer
-  //           ? {
-  //               ...offer,
-  //               title: newOffer.title,
-  //               description: newOffer.description,
-  //               discountType: newOffer.discountType,
-  //               discountValue: newOffer.discountValue,
-  //               validFrom: new Date(newOffer.validFrom),
-  //               validTo: new Date(newOffer.validTo),
-  //               isActive: newOffer.isActive,
-  //               applicableSlots:
-  //                 newOffer.applicableSlots.length > 0
-  //                   ? newOffer.applicableSlots
-  //                   : undefined,
-  //             }
-  //           : offer
-  //       )
-  //     );
-  //     resetForm();
-  //   }
-  // };
-  //   const handleDeleteOffer = (offerId: string) => {
-  //     if (confirm("Are you sure you want to delete this offer?")) {
-  //       setOffers(offers.filter((o) => o.id !== offerId));
-  //     }
-  //   };
-
   const resetForm = () => {
     setNewOffer({
       title: "",
@@ -178,12 +121,20 @@ export default function OfferManager({
   };
 
   const handleSlotToggle = (slotId: string) => {
-    setNewOffer((prev) => ({
-      ...prev,
-      applicableSlots: prev.applicableSlots.includes(slotId)
-        ? prev.applicableSlots.filter((id) => id !== slotId)
-        : [...prev.applicableSlots, slotId],
-    }));
+    // Convert slotId to string to ensure consistent comparison
+    const slotIdStr = String(slotId);
+
+    setNewOffer((prev) => {
+      const currentSlots = prev.applicableSlots.map((id) => String(id));
+      const updatedSlots = currentSlots.includes(slotIdStr)
+        ? currentSlots.filter((id) => id !== slotIdStr)
+        : [...currentSlots, slotIdStr];
+
+      return {
+        ...prev,
+        applicableSlots: updatedSlots,
+      };
+    });
   };
 
   return (
@@ -215,10 +166,6 @@ export default function OfferManager({
                     ? `${offer.discountValue}%`
                     : `₹${offer.discountValue}`}
                 </div>
-                {/* <div className="text-sm text-gray-600">
-                  Valid: {offer.validFrom.toLocaleDateString()} -{" "}
-                  {offer.validTo.toLocaleDateString()}
-                </div> */}
                 <div className="text-sm text-gray-600">
                   Valid: {new Date(offer.validFrom).toLocaleDateString()} -{" "}
                   {new Date(offer.validTo).toLocaleDateString()}
@@ -226,9 +173,10 @@ export default function OfferManager({
                 <div className="text-sm">
                   Status: {offer.isActive ? "Active" : "Inactive"}
                 </div>
-                {offer.applicableSlots && (
+                {offer.applicableSlots && offer.applicableSlots.length > 0 && (
                   <div className="text-sm text-gray-600">
-                    Applicable to specific slots only
+                    Applicable to {offer.applicableSlots.length} specific
+                    slot(s)
                   </div>
                 )}
               </div>
@@ -376,7 +324,9 @@ export default function OfferManager({
                   <label key={slot.id} className="flex items-center space-x-2">
                     <input
                       type="checkbox"
-                      checked={newOffer.applicableSlots.includes(slot.id)}
+                      checked={newOffer.applicableSlots
+                        .map((id) => String(id))
+                        .includes(String(slot.id))}
                       onChange={() => handleSlotToggle(slot.id)}
                       className="rounded"
                     />
@@ -421,7 +371,4 @@ export default function OfferManager({
       )}
     </div>
   );
-}
-function dispatch(arg0: any) {
-  throw new Error("Function not implemented.");
 }

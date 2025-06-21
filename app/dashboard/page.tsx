@@ -1,6 +1,6 @@
 "use client";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import AllGround from "@/components/user/ground";
+import AllGround from "@/components/user/AllGround";
 
 export default function DashboardPage() {
   return (
