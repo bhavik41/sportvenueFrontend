@@ -23,29 +23,28 @@ export default function ProtectedRoute({
     (state: RootState) => state.auth
   );
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      dispatch(verifyToken());
-    }
-  }, [dispatch, isAuthenticated]);
-
+  // Initial token check and verification
   useEffect(() => {
     const token = Cookies.get("token");
 
-    if (!isLoading && !isAuthenticated && token) {
+    // If we have a token but aren't authenticated, verify it
+    if (token && !isAuthenticated && !isLoading) {
       dispatch(verifyToken());
     }
-    if (!isLoading && !isAuthenticated && !token) {
+    // If no token and not loading, redirect to login
+    else if (!token && !isLoading) {
       router.push(redirectTo);
     }
-  }, [isAuthenticated, isLoading, router, redirectTo]);
+  }, [dispatch, isAuthenticated, isLoading, router, redirectTo]);
 
+  // Handle role-based access after authentication
   useEffect(() => {
     if (isAuthenticated && user && !allowedRoles.includes(user.role)) {
       router.push("/unauthorized");
     }
   }, [isAuthenticated, user, allowedRoles, router]);
 
+  // Show loading while verifying token
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -54,10 +53,12 @@ export default function ProtectedRoute({
     );
   }
 
+  // Don't render if not authenticated or user doesn't exist
   if (!isAuthenticated || !user) {
     return null;
   }
 
+  // Don't render if user doesn't have required role
   if (!allowedRoles.includes(user.role)) {
     return null;
   }

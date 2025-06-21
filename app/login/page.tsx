@@ -13,25 +13,22 @@ export default function LoginPage() {
     (state: RootState) => state.auth
   );
 
-  const [token, setToken] = useState("");
-
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
+  // Check for existing token on component mount
   useEffect(() => {
-    setToken(Cookies.get("token") || "");
-    console.log(token);
-    if (token && !isLoading) {
+    const token = Cookies.get("token");
+    if (token && !isAuthenticated && !isLoading) {
       dispatch(verifyToken());
     }
-  }, [token]);
+  }, [dispatch, isAuthenticated, isLoading]); // Added missing dependencies
 
+  // Handle navigation after authentication
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Redirect based on role
-      console.log("first");
       if (user.role === "admin") {
         router.push("/admin");
       } else {

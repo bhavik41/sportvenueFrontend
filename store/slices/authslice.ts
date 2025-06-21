@@ -75,9 +75,6 @@ export const verifyToken = createAsyncThunk("auth/verify", async () => {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  // Save token in cookie after successful verification
-  // Cookies.set("token", token, { expires: 7 });
-
   return { ...response.data, token };
 });
 
@@ -105,7 +102,7 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = true;
-        // state.user = action.payload.user;
+        state.user = action.payload.user; // Fixed: Set user data on login
         state.token = action.payload.token;
       })
       .addCase(loginUser.rejected, (state, action) => {
@@ -120,14 +117,13 @@ const authSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = true;
-        // state.user = action.payload.user;
+        state.user = action.payload.user; // Fixed: Set user data on register
         state.token = action.payload.token;
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || "Registration failed";
       })
-
       .addCase(verifyToken.pending, (state) => {
         state.isLoading = true;
         state.error = null;
