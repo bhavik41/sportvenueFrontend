@@ -23,6 +23,7 @@ import {
   X,
   Check,
 } from "lucide-react";
+import { createBooking } from "@/store/slices/bookingSlice";
 
 interface GroundDetailesProps {
   groundId: string;
@@ -45,17 +46,81 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-
-  // New state for offer functionality
   const [appliedOffers, setAppliedOffers] = useState<AppliedOffer[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [bookingStatus, setBookingStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const error = useSelector((state: RootState) => state.bookings.error);
   const [couponCode, setCouponCode] = useState("");
   const [showCouponInput, setShowCouponInput] = useState(false);
   const [couponError, setCouponError] = useState("");
   const [couponSuccess, setCouponSuccess] = useState("");
 
   useEffect(() => {
-    dispatch(fetchGroundById(groundId));
+    dispatch(fetchGroundById(groundId)).unwrap();
   }, [groundId, dispatch]);
+
+  const calculateTotalAmount = () => {
+    if (!selectedSlot || !currentGround?.slots) return 0;
+
+    const selectedTimeSlot = currentGround.slots.find(
+      (slot) => slot.id === selectedSlot
+    );
+    if (!selectedTimeSlot) return 0;
+
+    const { finalPrice } = calculateSlotPrice(selectedTimeSlot);
+    return finalPrice;
+  };
+
+  const handleBooking = async () => {
+    if (!selectedSlot || !selectedDate) {
+      setBookingError("Please select a date and time slot");
+      return;
+    }
+
+    try {
+      await dispatch(
+        createBooking({
+          groundId,
+          timeSlotId: selectedSlot,
+          date: selectedDate,
+          totalAmount: calculateTotalAmount(), // Implement this function to calculate final amount with discounts
+        })
+      );
+      if (error) {
+        setBookingError(error);
+        setBookingStatus("error");
+      } else {
+        setSelectedSlot(null);
+        setSelectedDate(null);
+        setBookingStatus("success");
+        setAppliedOffers([]);
+        setTimeout(() => {
+          setBookingStatus("idle");
+        }, 5000);
+        dispatch(fetchGroundById(groundId)).unwrap();
+      }
+    } catch (err) {
+      setBookingError(error);
+    }
+  };
+
+  const isSlotBooked = (slotId: string, date: Date): boolean => {
+    if (!currentGround?.bookings) return false;
+
+    const dateString = date.toISOString().split("T")[0];
+
+    return currentGround.bookings.some((booking) => {
+      const bookingDate = new Date(booking.date).toISOString().split("T")[0];
+      return (
+        booking.timeSlotId === slotId &&
+        bookingDate === dateString &&
+        booking.status !== "cancelled"
+      );
+    });
+  };
 
   const nextImage = () => {
     if (currentGround?.images && !isTransitioning) {
@@ -85,8 +150,6 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
     }
   };
 
-  // Apply offer functionality
-  // Apply offer functionality - FIXED VERSION
   const applyOffer = (offerId: string, slotId?: string) => {
     if (!currentGround) return;
 
@@ -143,7 +206,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
       }
     });
   };
-  // Remove applied offer
+
   const removeAppliedOffer = (slotId: string, offerId: string) => {
     setAppliedOffers((prev) =>
       prev.filter(
@@ -152,7 +215,6 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
     );
   };
 
-  // Apply coupon code
   const applyCouponCode = () => {
     // Clear previous messages
     setCouponError("");
@@ -220,7 +282,6 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
     setShowCouponInput(false);
   };
 
-  // Calculate discounted price for a slot
   const calculateSlotPrice = (slot: any) => {
     let finalPrice = slot.price;
     let totalDiscount = 0;
@@ -290,7 +351,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Hero Section with Image Carousel */}
-      <div className="relative h-[50vh] bg-gray-900 overflow-hidden">
+      <div className="relative h-[60vh] bg-gray-900 overflow-hidden">
         {currentGround.images && currentGround.images.length > 0 ? (
           <>
             {/* Carousel Container */}
@@ -401,7 +462,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                     {currentGround.location.city},{" "}
                     {currentGround.location.state}
                   </div>
-                  <div className="bg-blue-600 px-3 py-1 rounded-full text-xs font-medium">
+                  <div className="bg-green-600 px-3 py-1 rounded-full text-xs font-medium">
                     {getGroundTypeLabel(currentGround.groundType)}
                   </div>
                 </div>
@@ -434,9 +495,11 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left Column - Main Info */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Booking Section */}
+
             {/* Image Thumbnails */}
             {currentGround.images && currentGround.images.length > 1 && (
-              <div className="bg-white rounded-2xl shadow-lg p-4">
+              <div className="bg-white shadow-black rounded-2xl p-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">
                   Gallery
                 </h3>
@@ -447,7 +510,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                       onClick={() => goToImage(index)}
                       className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                         index === currentImageIndex
-                          ? "border-blue-500 ring-2 ring-blue-200"
+                          ? "border-black ring-1 ring-black"
                           : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
@@ -462,7 +525,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                         }}
                       />
                       {index === currentImageIndex && (
-                        <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-gray-500 opacity-80 flex items-center justify-center">
                           <div className="w-4 h-4 bg-white rounded-full"></div>
                         </div>
                       )}
@@ -509,7 +572,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                 {currentGround.amenities.map((amenity, index) => (
                   <div
                     key={index}
-                    className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg inset-shadow-sm inset-shadow-black/40"
                   >
                     {getAmenityIcon(amenity)}
                     <span className="text-gray-700 capitalize">
@@ -539,11 +602,11 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                         className="border border-green-200 rounded-lg p-4 bg-green-50"
                       >
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold text-green-800">
+                          <h3 className="font-semibold text-black-800">
                             {offer.title}
                           </h3>
                           <div className="flex flex-col items-end space-y-1">
-                            <span className="bg-green-600 text-white px-2 py-1 rounded text-sm">
+                            <span className="bg-black text-white px-2 py-1 rounded text-sm">
                               {offer.discountType === "percentage"
                                 ? `${offer.discountValue}% OFF`
                                 : `₹${offer.discountValue} OFF`}
@@ -555,12 +618,12 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                             )}
                           </div>
                         </div>
-                        <p className="text-green-700 text-sm mb-2">
+                        <p className="text-black-700 text-sm mb-2">
                           {offer.description}
                         </p>
 
                         <div className="flex justify-between items-center">
-                          <p className="text-green-600 text-xs">
+                          <p className="text-black-600 text-xs">
                             Valid:{" "}
                             {new Date(offer.validFrom).toLocaleDateString()} -{" "}
                             {new Date(offer.validTo).toLocaleDateString()}
@@ -569,7 +632,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                             {offer.isActive &&
                               new Date(offer.validFrom) <= new Date() &&
                               new Date(offer.validTo) >= new Date() && (
-                                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                                <span className="bg-green-100 border-green-500 border-1 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
                                   Active Now
                                 </span>
                               )}
@@ -587,7 +650,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                                   className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                                     isOfferApplied
                                       ? "bg-gray-200 text-gray-600 cursor-not-allowed"
-                                      : "bg-green-600 hover:bg-green-700 text-white"
+                                      : "bg-black hover:bg-gray-700 text-white"
                                   }`}
                                 >
                                   {isOfferApplied ? "Applied" : "Apply Offer"}
@@ -599,7 +662,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                           <p className="text-black-600 text-xs">
                             Coupon Code:-{" "}
                           </p>
-                          <p className="text-black-600 border-black-200 rounded-md px-2 bg-neutral-200 p-1 text-xs">
+                          <p className="text-black-600 border-black-200 border-[0.5px] rounded-md px-2 bg-neutral-200 p-1 text-xs">
                             {offer.couponCode}
                           </p>
                         </div>
@@ -618,7 +681,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                                 return slot ? (
                                   <span
                                     key={slotId}
-                                    className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs"
+                                    className="bg-green-100 text-blue-800 px-2 py-0.5 rounded text-xs"
                                   >
                                     {slot.startTime}-{slot.endTime}
                                   </span>
@@ -698,9 +761,120 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                 </div>
                 <div className="text-gray-500">per hour</div>
               </div>
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                  Book Your Slot
+                </h3>
 
-              {/* Coupon Code Section */}
-              <div className="mb-6">
+                {/* Date Selection */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Date
+                  </label>
+                  <input
+                    type="date"
+                    min={new Date().toISOString().split("T")[0]}
+                    value={selectedDate?.toISOString().split("T")[0] || ""}
+                    onChange={(e) => {
+                      setSelectedDate(
+                        e.target.value ? new Date(e.target.value) : null
+                      );
+                      setSelectedSlot(null);
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Time Slots */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Time Slot
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
+                    {currentGround?.slots?.map((slot) => {
+                      const { finalPrice, hasDiscount } =
+                        calculateSlotPrice(slot);
+                      const isSlotAvailable =
+                        slot.isAvailable &&
+                        selectedDate &&
+                        slot.days.includes(
+                          selectedDate
+                            .toLocaleDateString("en-US", { weekday: "long" })
+                            .toLowerCase() as
+                            | "monday"
+                            | "tuesday"
+                            | "wednesday"
+                            | "thursday"
+                            | "friday"
+                            | "saturday"
+                            | "sunday"
+                        );
+
+                      // Check if slot is booked for the selected date
+                      const isBooked = selectedDate
+                        ? isSlotBooked(slot.id, selectedDate)
+                        : false;
+
+                      return (
+                        <button
+                          key={slot.id}
+                          onClick={() => !isBooked && setSelectedSlot(slot.id)}
+                          disabled={!isSlotAvailable || isBooked}
+                          className={`p-3 rounded-lg text-sm font-medium transition-all ${
+                            isBooked
+                              ? "bg-red-100 border border-red-200 text-red-600 cursor-not-allowed"
+                              : slot.id === selectedSlot
+                              ? "bg-green-500 text-white"
+                              : isSlotAvailable
+                              ? "bg-white border border-gray-200 hover:border-blue-500 text-gray-900"
+                              : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          }`}
+                        >
+                          <div>
+                            {slot.startTime} - {slot.endTime}
+                          </div>
+                          <div className="mt-1">
+                            {hasDiscount && !isBooked && (
+                              <span className="line-through text-gray-400 mr-2">
+                                ₹{slot.price}
+                              </span>
+                            )}
+                            <span
+                              className={`${
+                                isBooked
+                                  ? "text-red-600"
+                                  : slot.id === selectedSlot
+                                  ? "text-white"
+                                  : "text-blue-600"
+                              }`}
+                            >
+                              ₹{finalPrice}
+                            </span>
+                          </div>
+                          {isBooked && (
+                            <div className="text-xs text-red-600 mt-1 font-semibold">
+                              Already Booked
+                            </div>
+                          )}
+                          {!selectedDate && !isBooked && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Select a date first
+                            </div>
+                          )}
+                          {selectedDate &&
+                            !isSlotAvailable &&
+                            slot.isAvailable &&
+                            !isBooked && (
+                              <div className="text-xs text-red-500 mt-1">
+                                Not available on this day
+                              </div>
+                            )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="font-semibold text-gray-900">
                     Have a coupon?
@@ -713,7 +887,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                   </button>
                 </div>
                 {showCouponInput && (
-                  <div className="space-y-3">
+                  <div className="space-y-3 mb-6">
                     <div className="flex space-x-2">
                       <input
                         type="text"
@@ -734,7 +908,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                       <button
                         onClick={applyCouponCode}
                         disabled={!couponCode.trim()}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium"
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium"
                       >
                         Apply
                       </button>
@@ -761,240 +935,150 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                     )}
                   </div>
                 )}
+
+                {/* Applied Offers Summary */}
+                {appliedOffers.length > 0 && (
+                  <div className="mb-6 p-4 border border-green-200 rounded-lg bg-green-50">
+                    <h4 className="font-semibold text-green-800 mb-2 flex items-center">
+                      <Tag className="w-4 h-4 mr-1" />
+                      Applied Offers ({appliedOffers.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {appliedOffers.map((appliedOffer, index) => {
+                        const slot = currentGround.slots?.find(
+                          (s) => s.id === appliedOffer.slotId
+                        );
+                        return (
+                          <div
+                            key={index}
+                            className="flex justify-between items-center text-sm"
+                          >
+                            <div>
+                              <span className="font-medium text-green-800">
+                                {appliedOffer.title}
+                              </span>
+                              {slot && (
+                                <span className="text-green-600 ml-2">
+                                  ({slot.startTime}-{slot.endTime})
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-green-700 font-semibold">
+                                -
+                                {appliedOffer.discountType === "percentage"
+                                  ? `${appliedOffer.discountAmount}%`
+                                  : `₹${appliedOffer.discountAmount}`}
+                              </span>
+                              <button
+                                onClick={() =>
+                                  removeAppliedOffer(
+                                    appliedOffer.slotId,
+                                    appliedOffer.offerId
+                                  )
+                                }
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Price Summary */}
+                {selectedSlot && (
+                  <div className="mb-6 p-4 border border-blue-200 rounded-lg bg-green-50">
+                    <h4 className="font-semibold text-blue-800 mb-2">
+                      Booking Summary
+                    </h4>
+                    {(() => {
+                      const slot = currentGround.slots?.find(
+                        (s) => s.id === selectedSlot
+                      );
+                      if (!slot) return null;
+
+                      const priceInfo = calculateSlotPrice(slot);
+
+                      return (
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span>Selected Slot:</span>
+                            <span className="font-medium">
+                              {slot.startTime} - {slot.endTime}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Base Price:</span>
+                            <span>₹{slot.price}</span>
+                          </div>
+                          {priceInfo.hasDiscount && (
+                            <>
+                              <div className="flex justify-between text-green-600">
+                                <span>Discount:</span>
+                                <span>
+                                  -₹{Math.round(priceInfo.totalDiscount)}
+                                </span>
+                              </div>
+                              <hr className="border-blue-200" />
+                              <div className="flex justify-between font-bold text-blue-800">
+                                <span>Final Price:</span>
+                                <span>₹{Math.round(priceInfo.finalPrice)}</span>
+                              </div>
+                              <div className="text-green-600 font-medium text-center">
+                                You save ₹{Math.round(priceInfo.totalDiscount)}!
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+                {/* Booking Button and Status */}
+                <div className="mt-6">
+                  {bookingError && (
+                    <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg">
+                      {bookingError}
+                    </div>
+                  )}
+                  {bookingStatus === "success" && (
+                    <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg">
+                      Booking successful! We'll send you a confirmation email
+                      shortly.
+                    </div>
+                  )}
+                  <button
+                    onClick={handleBooking}
+                    disabled={
+                      bookingStatus === "loading" ||
+                      !selectedDate ||
+                      !selectedSlot
+                    }
+                    className={`w-full py-3 px-4 rounded-lg font-medium transition-all ${
+                      bookingStatus === "loading"
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                        : selectedDate && selectedSlot
+                        ? "bg-gradient-to-br from-black to-gray-600 text-white  hover:from-gray-600 hover:to-black transition-all hover:from-gray-600 hover:to-black"
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    {bookingStatus === "loading" ? "Processing..." : "Book Now"}
+                  </button>
+                </div>
               </div>
 
-              {/* Time Slots */}
-              {currentGround.slots && currentGround.slots.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
-                    <Clock className="w-5 h-5 mr-2 text-blue-600" />
-                    Available Slots
-                  </h3>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {currentGround.slots.map((slot) => {
-                      const priceInfo = calculateSlotPrice(slot);
-                      const slotAppliedOffers = appliedOffers.filter(
-                        (offer) => offer.slotId === slot.id
-                      );
+              {/* Coupon Code Section */}
 
-                      return (
-                        <button
-                          key={slot.id}
-                          onClick={() =>
-                            setSelectedSlot(
-                              selectedSlot === slot.id ? null : slot.id
-                            )
-                          }
-                          className={`w-full p-3 rounded-lg border transition-all relative ${
-                            selectedSlot === slot.id
-                              ? "border-blue-500 bg-blue-50"
-                              : slot.isAvailable
-                              ? "border-gray-200 hover:border-gray-300 bg-white"
-                              : "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
-                          } ${
-                            priceInfo.hasDiscount
-                              ? "border-l-4 border-l-green-500"
-                              : ""
-                          }`}
-                          disabled={!slot.isAvailable}
-                        >
-                          {/* Discount Badge */}
-                          {priceInfo.hasDiscount && (
-                            <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                              SAVE ₹{Math.round(priceInfo.totalDiscount)}
-                            </div>
-                          )}
-
-                          <div className="flex justify-between items-center">
-                            <div className="text-left">
-                              <div className="font-medium text-gray-900">
-                                {slot.startTime} - {slot.endTime}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {slot.days.join(", ")}
-                              </div>
-                              {slotAppliedOffers.length > 0 && (
-                                <div className="text-xs text-green-600 font-medium mt-1">
-                                  🎉{" "}
-                                  {slotAppliedOffers
-                                    .map((o) => o.title)
-                                    .join(", ")}
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              {priceInfo.hasDiscount ? (
-                                <div>
-                                  <div className="text-xs text-gray-500 line-through">
-                                    ₹{slot.price}
-                                  </div>
-                                  <div className="font-bold text-green-600">
-                                    ₹{Math.round(priceInfo.finalPrice)}
-                                  </div>
-                                  <div className="text-xs text-green-600 font-medium">
-                                    Save ₹{Math.round(priceInfo.totalDiscount)}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="font-bold text-gray-900">
-                                  ₹{slot.price}
-                                </div>
-                              )}
-                              <div
-                                className={`text-xs ${
-                                  slot.isAvailable
-                                    ? "text-green-600"
-                                    : "text-red-500"
-                                }`}
-                              >
-                                {slot.isAvailable ? "Available" : "Booked"}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Applied offers for this slot */}
-                          {slotAppliedOffers.length > 0 && (
-                            <div className="mt-2 pt-2 border-t border-gray-200">
-                              <div className="flex flex-wrap gap-1">
-                                {slotAppliedOffers.map((appliedOffer) => (
-                                  <div
-                                    key={appliedOffer.offerId}
-                                    className="flex items-center bg-green-100 text-green-800 px-2 py-1 rounded text-xs"
-                                  >
-                                    <span>{appliedOffer.title}</span>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        removeAppliedOffer(
-                                          slot.id,
-                                          appliedOffer.offerId
-                                        );
-                                      }}
-                                      className="ml-1 text-green-600 hover:text-green-800"
-                                    >
-                                      <X className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Applied Offers Summary */}
-              {appliedOffers.length > 0 && (
-                <div className="mb-6 p-4 border border-green-200 rounded-lg bg-green-50">
-                  <h4 className="font-semibold text-green-800 mb-2 flex items-center">
-                    <Tag className="w-4 h-4 mr-1" />
-                    Applied Offers ({appliedOffers.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {appliedOffers.map((appliedOffer, index) => {
-                      const slot = currentGround.slots?.find(
-                        (s) => s.id === appliedOffer.slotId
-                      );
-                      return (
-                        <div
-                          key={index}
-                          className="flex justify-between items-center text-sm"
-                        >
-                          <div>
-                            <span className="font-medium text-green-800">
-                              {appliedOffer.title}
-                            </span>
-                            {slot && (
-                              <span className="text-green-600 ml-2">
-                                ({slot.startTime}-{slot.endTime})
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-green-700 font-semibold">
-                              -
-                              {appliedOffer.discountType === "percentage"
-                                ? `${appliedOffer.discountAmount}%`
-                                : `₹${appliedOffer.discountAmount}`}
-                            </span>
-                            <button
-                              onClick={() =>
-                                removeAppliedOffer(
-                                  appliedOffer.slotId,
-                                  appliedOffer.offerId
-                                )
-                              }
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Price Summary */}
-              {selectedSlot && (
-                <div className="mb-6 p-4 border border-blue-200 rounded-lg bg-blue-50">
-                  <h4 className="font-semibold text-blue-800 mb-2">
-                    Booking Summary
-                  </h4>
-                  {(() => {
-                    const slot = currentGround.slots?.find(
-                      (s) => s.id === selectedSlot
-                    );
-                    if (!slot) return null;
-
-                    const priceInfo = calculateSlotPrice(slot);
-
-                    return (
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Selected Slot:</span>
-                          <span className="font-medium">
-                            {slot.startTime} - {slot.endTime}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Base Price:</span>
-                          <span>₹{slot.price}</span>
-                        </div>
-                        {priceInfo.hasDiscount && (
-                          <>
-                            <div className="flex justify-between text-green-600">
-                              <span>Discount:</span>
-                              <span>
-                                -₹{Math.round(priceInfo.totalDiscount)}
-                              </span>
-                            </div>
-                            <hr className="border-blue-200" />
-                            <div className="flex justify-between font-bold text-blue-800">
-                              <span>Final Price:</span>
-                              <span>₹{Math.round(priceInfo.finalPrice)}</span>
-                            </div>
-                            <div className="text-green-600 font-medium text-center">
-                              You save ₹{Math.round(priceInfo.totalDiscount)}!
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-
-              <button
+              {/* <button
                 disabled={!selectedSlot}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+                className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors"
               >
                 {selectedSlot ? "Book Now" : "Select a Slot to Book"}
-              </button>
+              </button> */}
             </div>
 
             {/* Contact Card */}
@@ -1007,7 +1091,7 @@ const GroundDetailes: React.FC<GroundDetailesProps> = ({ groundId }) => {
                   <Phone className="w-4 h-4" />
                   <span>Call Now</span>
                 </button>
-                <button className="w-full flex items-center justify-center space-x-2 border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg transition-colors">
+                <button className="w-full bg-black flex items-center justify-center space-x-2 border border-gray-300 hover:bg-white hover:border-2 hover:border-black hover:text-black text-white py-2 px-4 rounded-lg ">
                   <Mail className="w-4 h-4" />
                   <span>Send Message</span>
                 </button>

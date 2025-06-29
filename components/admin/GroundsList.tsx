@@ -74,7 +74,7 @@ export default function GroundsList() {
         <h1 className="text-2xl font-bold">Manage Grounds</h1>
         <button
           onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-700 hover:shadow-md hover:shadow-black"
         >
           Add New Ground
         </button>
@@ -110,7 +110,7 @@ export default function GroundsList() {
       </div>
 
       {/* Grounds Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 shadow-black shadow-xl/45">
         {filteredGrounds.map((ground) => (
           <div
             key={ground.id}
@@ -169,7 +169,7 @@ export default function GroundsList() {
               <div className="flex space-x-2">
                 <button
                   onClick={() => handleEdit(ground)}
-                  className="flex-1 px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                  className="flex-1 px-3 py-2 text-sm bg-white text-black border-1 border-black rounded hover:bg-black hover:text-white"
                 >
                   Edit
                 </button>
